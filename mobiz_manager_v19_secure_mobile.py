@@ -5,6 +5,7 @@ import uuid
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 from collections import defaultdict
+import platform
 
 # ==============================
 # MoBiz Manager v19.1
@@ -28,10 +29,7 @@ def get_device_id():
 # ==============================
 # Premium License Logic
 # ==============================
-import platform
-
 def _hidden_secret():
-    # Secret split in pieces (harder to detect)
     p1 = "M0B"
     p2 = "1Z_"
     p3 = "S3C"
@@ -44,8 +42,6 @@ def generate_license(device_id):
     system_info = platform.system() + platform.machine()
     raw_string = device_id + system_info + _hidden_secret()
     hash_value = hashlib.sha256(raw_string.encode()).hexdigest().upper()
-
-    # Make it look like a professional license format
     formatted = f"{hash_value[:5]}-{hash_value[5:10]}-{hash_value[10:15]}-{hash_value[15:20]}"
     return formatted
 
@@ -69,10 +65,19 @@ def activate_license():
 
     win = tk.Toplevel()
     win.title("Upgrade to Premium")
-    win.geometry("1100x1600")  # keep as requested
-    win.resizable(True, True)
 
-    font_small = ("Arial", 7)
+    # -----------------------------
+    # Auto-resize for mobile screens
+    # -----------------------------
+    win.update_idletasks()
+    screen_width = win.winfo_screenwidth()
+    screen_height = win.winfo_screenheight()
+    popup_width = int(screen_width * 0.95)
+    popup_height = int(screen_height * 0.90)
+    win.geometry(f"{popup_width}x{popup_height}+10+10")
+    win.resizable(False, False)
+
+    font_small = ("Arial", 6)
 
     instructions = f"""
 MoBiz Manager v19.1 Premium Upgrade
@@ -94,18 +99,13 @@ After payment:
 1. Send proof of payment and include your Device ID to the contact address. (check README)
 2. You will receive your License Key.
 """
-    frame_text = tk.Frame(win, width=950, height=900)
-    frame_text.pack(padx=20, pady=20)
-    frame_text.pack_propagate(True)
 
-    text_box = tk.Text(frame_text, font=font_small, wrap="word")
-    text_box.pack(fill="both", expand=True)
+    text_box = tk.Text(win, font=font_small, wrap="word")
+    text_box.pack(fill="both", expand=True, padx=15, pady=15)
     text_box.insert("1.0", instructions)
-    text_box.config(state="disabled")  # not editable, not selectable
+    text_box.config(state="disabled")
 
-    # ==============================
     # COPY DEVICE ID BUTTON
-    # ==============================
     def copy_device_id():
         win.clipboard_clear()
         win.clipboard_append(device_id)
@@ -113,9 +113,7 @@ After payment:
 
     tk.Button(win, text="Copy Device ID", command=copy_device_id).pack(pady=10)
 
-    # ==============================
-    # LICENSE ENTRY SECTION
-    # ==============================
+    # LICENSE ENTRY
     tk.Label(win, text="Enter License Key:", font=font_small).pack(pady=(20,5))
     license_entry = tk.Entry(win, font=font_small, width=50)
     license_entry.pack(pady=5)
@@ -168,16 +166,11 @@ class MoBizApp:
             tk.Button(self.master, text="🔒 Expense Category Breakdown", command=lambda: show_premium_info(self.master)).pack(fill="x")
             tk.Button(self.master, text="🔒 Project Calculator", command=lambda: show_premium_info(self.master)).pack(fill="x")
 
-        # Upgrade button under Project Calculator
         tk.Button(self.master, text="Upgrade to Premium", command=activate_license, fg="blue").pack(fill="x", pady=(5,2))
-        # README / Info before exit
         tk.Button(self.master, text="README / Info", command=self.show_readme, fg="green").pack(fill="x", pady=(2,2))
-        # Exit
         tk.Button(self.master, text="Exit", command=self.master.destroy, fg="red").pack(fill="x", pady=(5,5))
 
-    # ==========================
     # Free Features
-    # ==========================
     def write_record(self, filename, record):
         with open(filename, "a") as f:
             f.write(record + "\n")
@@ -223,9 +216,7 @@ class MoBizApp:
 
         messagebox.showinfo("Exported", f"Data exported to {EXPORT_FILE}")
 
-    # ==========================
     # Premium Features
-    # ==========================
     def monthly_summary(self):
         if not self.premium:
             messagebox.showwarning("Premium Required", "Upgrade to Premium to use this feature.")
@@ -265,26 +256,24 @@ class MoBizApp:
         messagebox.showinfo("Project Calculator",
                             f"Base Cost: {base}\nProfit: {profit_amount}\nTax: {tax_amount}\nFinal Price: {final_price}")
 
-    # ==========================
-    # README / Info Popup
-    # ==========================
+    # README / Info Popup with CLOSE button
     def show_readme(self):
         readme_win = tk.Toplevel(self.master)
         readme_win.title("MoBiz Manager v19.1 - Info / README")
 
-        width = 900
-        height = 1450  # increased by 150
+        # Auto-resize
+        readme_win.update_idletasks()
         screen_width = readme_win.winfo_screenwidth()
         screen_height = readme_win.winfo_screenheight()
-        x = (screen_width // 2) - (width // 2)
-        y = (screen_height // 2) - (height // 2)
-        readme_win.geometry(f"{width}x{height}+{x}+{y}")
+        popup_width = int(screen_width * 0.95)
+        popup_height = int(screen_height * 0.90)
+        readme_win.geometry(f"{popup_width}x{popup_height}+10+10")
         readme_win.resizable(False, False)
 
         font_small = ("Arial", 6)
         text_box = tk.Text(readme_win, font=font_small, wrap="word")
         text_box.pack(fill="both", expand=True, padx=15, pady=10)
-        
+
         readme_content = f"""
 MoBiz Manager v19.1 - Secure Mobile Freemium Edition
 
@@ -319,7 +308,10 @@ PayPal: mosesobiy@gmail.com
 - WhatsApp: +2349027860267
 """
         text_box.insert("1.0", readme_content)
-        text_box.config(state="disabled")  # not editable, not selectable
+        text_box.config(state="disabled")  # not editable
+
+        # CLOSE BUTTON
+        tk.Button(readme_win, text="Close", command=readme_win.destroy, font=("Arial",6)).pack(pady=10)
 
 # ==============================
 # Run App
